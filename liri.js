@@ -9,6 +9,12 @@ var moment = require('moment');
 
 
 var writeToLog = function(data){
+    fs.appendFile("log.txt", 'r/n/r/n', function(err){
+        if(err){
+            throw err;
+    }
+    });
+
     fs.appendFile("log.txt", JSON.stringify(data), function(err){
         if (err){
             console.log('error');
@@ -23,48 +29,59 @@ var showTweets = function(){
     var params = {screen_name: 'DritaDee', count: 20};
     client.get('statuses/user_timeline', params, function(error, tweets, response) {
       if (!error) {
-        console.log(tweets);
-      }  else {
-            //console.log(JSON.stringify(data));
-          console.log(tweets + "\r\n" + "Created: " + "\r\n" + moment(tweets.date).format("MMM Do YY"));
+        var data = []; //empty array to hold data
+        for (var i = 0; i < tweets.length; i++) {
+          data.push({
+              'created at: ' : tweets[i].created_at,
+              'Tweets: ' : tweets[i].text,
+          });
         }
+        console.log(data);
+        writeToLog(data);
+    }
       });
 } 
-var showMusic = function(song) {
-    var spotify = new Spotify(keys.spotify);
 
-    spotify.search({type: 'track', query: song, limit: 1,}, 
+var spotify = new Spotify(keys.spotify);
+
+var artistNames = function(artist) {
+    return artist.name;
+}
+
+var showMusic = function(song) {
+    if (song === undefined){
+        song = 'The Sign';
+};
+
+    spotify.search({type: 'track', query: song, limit: 5,}, 
         function(err, data) {
             if (err) {
                  console.log('Error occurred: ' + err);
-                 return console.log('Spotify couldnt find.');
+                 return;
             }
-
-    if (song === undefined){
-                song = "The%20Sign%20Ace%20of%20Base"
-    };
     
+    //var spotInfo = "Artist(s):" + songs[i].artist + "\NSong Name: :" + songs[i];
     var songs = data.tracks.items;
     var data = []; //array to store data
     
-    for (var i = 0; i < data.length; i++) {
+    for (var i = 0; i < songs.length; i++) {
         data.push({
-            '\NArtist(s)': songs[i].artist,
-            '\NSong Name: ': songs[i],
-            '\NAlbum: ': songs[i].album,
+            '\NArtist(s)': songs[i].artists.map(artistNames),
+            '\NSong Name: ': songs[i].name,
+            '\NAlbum: ': songs[i].album.name,
             '\NPreview Song: ': songs[i].preview_url,
         });
       }
-      //console.log(data);
+      console.log(data);
       writeToLog(data);
     });
             
 }
 
 
-var showMovie = function(movie){
-    if (movie === undefined){
-        movie = "Mr Nobody";
+var showMovie = function(movieName){
+    if (movieName === undefined){
+        movieName = 'Mr%20Nobody';
     }
 
 var omdb =  "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy";
@@ -72,18 +89,19 @@ var omdb =  "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=tr
 request(omdb, function(error, response, body){
     if (!error && response.statusCode === 200){
        var data = [];
+       var parseData = JSON.parse(body);
 
        data.push({
-        '\NTitle: ' : JSON.parse(Title),
-        '\NYear: ' : JSON.parse(Year),
-        '\NIMDB Rating: ' : JSON.parse(imdbRating),
-        '\NRotten Tomatos Rating: ' : JSON.parse(tomatoRating),
-        '\NCountry: ' : JSON.parse(Country),
-        '\NLanguage: ' : JSON.parse(Language),
-        '\NPlot: ' : JSON.parse(Plot),
-        '\NActors: ' : JSON.parse(Actors),
+        '\NTitle: ' : parseData.Title,
+        '\NYear: ' : parseData.Year,
+        '\NIMDB Rating: ' : parseData.imdbRating,
+        '\NRotten Tomatos Rating: ' : parseData.tomatoRating,
+        '\NCountry: ' : parseData.Country,
+        '\NLanguage: ' : parseData.Language,
+        '\NPlot: ' : parseData.Plot,
+        '\NActors: ' : parseData.Actors,
        });
-       //console.log(data);
+       console.log(data);
        writeToLog(data);
     }
 });
@@ -96,9 +114,9 @@ var doWhatItSays = function(){
         var dataArr = data.split(',')
     
         if (dataArr.length == 2) {
-          pick(dataArr[0], dataArr[1]);
+          (dataArr[0], dataArr[1]);
         } else if (dataArr.length == 1) {
-          pick(dataArr[0]);
+          (dataArr[0]);
         }
     
       });    
@@ -108,9 +126,9 @@ var pressPlay = function(keyword, secondThing) {
     if (keyword === 'my-tweets') {
       showTweets();
     } else if (keyword === 'spotify-this-song') {
-      showMusic();
+      showMusic(secondThing);
     } else if (keyword === 'movie-this'){
-      showMovie();
+      showMovie(secondThing);
     } else if (keyword === 'do-what-it-says') {
       doWhatItSays();
     } else {
